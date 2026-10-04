@@ -142,7 +142,7 @@ commands.history = () => {
 commands.cd = (newDirectory) => {
   const currDir = getDirectory();
   const dirs = Object.keys(struct);
-  const newDir = newDirectory ? newDirectory.trim() : '';
+  const newDir = newDirectory ? newDirectory.trim().replace(/\/+$/, '') : '';
 
   if (dirs.includes(newDir) && currDir !== newDir) {
     setDirectory(newDir);

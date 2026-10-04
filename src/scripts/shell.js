@@ -23,6 +23,7 @@ class Shell {
       const key = evt.keyCode;
 
       if ([upKey, downKey].includes(key)) {
+        const input = $('.input').last()[0];
         let history = localStorage.history;
         history = history ? Object.values(JSON.parse(history)) : [];
 
@@ -35,7 +36,7 @@ class Shell {
             if (localStorage.historyIndex == history.length - 1 && history.length !== 1) {
               localStorage.historyIndex -= 1;
             }
-            $('.input').last().html(`${history[localStorage.historyIndex]}<span class="end"><span>`);
+            this.replaceInputText(input, history[localStorage.historyIndex]);
             if (localStorage.historyIndex != 0) localStorage.historyIndex -= 1;
           }
         } else if (key === downKey) {
@@ -43,20 +44,19 @@ class Shell {
             let ret;
 
             if (localStorage.historyIndex > 0) {
-              ret = `${history[localStorage.historyIndex]}<span class="end"><span>`;
+              ret = history[localStorage.historyIndex];
               if (localStorage.historyIndex != history.length - 1) {
                 localStorage.historyIndex = Number(localStorage.historyIndex) + 1;
               }
               // Prevent repetition of first command while traversing history.
             } else if (localStorage.historyIndex == 0 && history.length > 1) {
-              ret = `${history[1]}<span class="end"><span>`;
+              ret = history[1];
               localStorage.historyIndex = history.length !== 2 ? 2 : 1;
             }
-            $('.input').last().html(ret);
+            if (ret !== undefined) this.replaceInputText(input, ret);
           }
         }
         evt.preventDefault();
-        $('.end').focus();
       }
     });
 
@@ -143,12 +143,12 @@ class Shell {
         (command) => !command.startsWith('__') && command.startsWith(prefix),
       );
       if (candidates.length === 1) {
-        input.textContent = `${candidates[0]} `;
+        this.replaceInputText(input, `${candidates[0]} `);
         this.resetHistoryIndex();
       } else if (candidates.length > 1) {
         this.showTabCandidates(candidates, input);
         const common = this.commonPrefix(candidates);
-        if (common.length > prefix.length) input.textContent = common;
+        if (common.length > prefix.length) this.replaceInputText(input, common);
       }
       return;
     }
@@ -167,13 +167,13 @@ class Shell {
 
     candidates = files.filter((file) => file.toLowerCase().startsWith(filePrefix));
     if (candidates.length === 1) {
-      input.textContent = `${command} ${directoryPrefix}${candidates[0]}`;
+      this.replaceInputText(input, `${command} ${directoryPrefix}${candidates[0]}`);
       this.resetHistoryIndex();
     } else if (candidates.length > 1) {
       this.showTabCandidates(candidates, input);
       const common = this.commonPrefix(candidates);
       if (common.length > filePrefix.length) {
-        input.textContent = `${command} ${directoryPrefix}${common}`;
+        this.replaceInputText(input, `${command} ${directoryPrefix}${common}`);
       }
     }
   }
@@ -183,6 +183,20 @@ class Shell {
     output.className = 'gray';
     output.textContent = candidates.join('  ');
     input.parentNode.before(output);
+  }
+
+  replaceInputText(input, value) {
+    if (!input) return;
+    input.textContent = value;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(input);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   commonPrefix(strings) {
