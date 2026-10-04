@@ -157,3 +157,26 @@ div.number {
         opacity: 1;
    }
 }
+@media (max-width: 600px) {
+  #terminal {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: clamp(14px, 4vw, 20px);
+    font-size: clamp(15px, 4vw, 18px);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  #terminal p {
+    margin: 0 0 1em;
+  }
+
+  #terminal pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
