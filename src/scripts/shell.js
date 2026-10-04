@@ -66,8 +66,9 @@ class Shell {
       // 8 -> Backspace key.
       // 46 -> Delete key.
 
-      if (evt.keyCode === 9) {
+      if (evt.key === 'Tab' || evt.keyCode === 9) {
         evt.preventDefault();
+        this.handleTab();
       } else if (evt.keyCode === 8 || evt.keyCode === 46) {
         this.resetHistoryIndex();
       }
@@ -103,7 +104,9 @@ class Shell {
         } else if (input == '') {
           this.resetPrompt(term, prompt);
         } else {
-          this.term.innerHTML += 'Error: command not recognized';
+          const suggestion = this.findSimilarCommand(cmd);
+          const hint = suggestion ? ` — did you mean ${suggestion}?` : '';
+          this.term.innerHTML += `Error: command not recognized${hint}`;
           this.resetPrompt(term, prompt);
         }
         evt.preventDefault();
@@ -122,6 +125,103 @@ class Shell {
     $('pre#pre-ra').on("animationend", function () {
       $(this).removeClass('fade-in');
     });
+  }
+
+  handleTab() {
+    const input = $('.input').last()[0];
+    if (!input) return;
+
+    const raw = input.textContent || '';
+    const hasSpace = raw.includes(' ');
+    const parts = raw.trim().split(/\s+/).filter(Boolean);
+    let candidates = [];
+
+    if (!hasSpace) {
+      const prefix = (parts[0] || '').toLowerCase();
+      if (!prefix) return;
+      candidates = Object.keys(this.commands).filter(
+        (command) => !command.startsWith('__') && command.startsWith(prefix),
+      );
+      if (candidates.length === 1) {
+        input.textContent = `${candidates[0]} `;
+        this.resetHistoryIndex();
+      } else if (candidates.length > 1) {
+        this.showTabCandidates(candidates, input);
+        const common = this.commonPrefix(candidates);
+        if (common.length > prefix.length) input.textContent = common;
+      }
+      return;
+    }
+
+    const command = (parts[0] || '').toLowerCase();
+    const partial = raw.slice(raw.indexOf(' ') + 1).toLowerCase();
+    const slashIndex = partial.lastIndexOf('/');
+    const directoryPrefix = slashIndex >= 0 ? partial.slice(0, slashIndex + 1) : '';
+    const filePrefix = slashIndex >= 0 ? partial.slice(slashIndex + 1) : partial;
+    const directory = slashIndex >= 0 ? partial.slice(0, slashIndex) : null;
+    const files = this.commands.__getFilesIn
+      ? this.commands.__getFilesIn(directory)
+      : this.commands.__getFiles
+        ? this.commands.__getFiles()
+        : [];
+
+    candidates = files.filter((file) => file.toLowerCase().startsWith(filePrefix));
+    if (candidates.length === 1) {
+      input.textContent = `${command} ${directoryPrefix}${candidates[0]}`;
+      this.resetHistoryIndex();
+    } else if (candidates.length > 1) {
+      this.showTabCandidates(candidates, input);
+      const common = this.commonPrefix(candidates);
+      if (common.length > filePrefix.length) {
+        input.textContent = `${command} ${directoryPrefix}${common}`;
+      }
+    }
+  }
+
+  showTabCandidates(candidates, input) {
+    const output = document.createElement('p');
+    output.className = 'gray';
+    output.textContent = candidates.join('  ');
+    input.parentNode.before(output);
+  }
+
+  commonPrefix(strings) {
+    let prefix = strings[0] || '';
+    for (const value of strings.slice(1)) {
+      while (prefix && !value.startsWith(prefix)) prefix = prefix.slice(0, -1);
+    }
+    return prefix;
+  }
+
+  findSimilarCommand(input) {
+    const commands = Object.keys(this.commands).filter((command) => !command.startsWith('__'));
+    let best = null;
+    let bestDistance = 3;
+
+    for (const command of commands) {
+      const distance = this.editDistance(input, command);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = command;
+      }
+    }
+    return best;
+  }
+
+  editDistance(left, right) {
+    const previous = Array.from({ length: right.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= left.length; i++) {
+      let diagonal = previous[0];
+      previous[0] = i;
+      for (let j = 1; j <= right.length; j++) {
+        const above = previous[j];
+        previous[j] = left[i - 1] === right[j - 1]
+          ? diagonal
+          : 1 + Math.min(previous[j], previous[j - 1], diagonal);
+        diagonal = above;
+      }
+    }
+    return previous[right.length];
   }
 
   resetPrompt(term, prompt) {

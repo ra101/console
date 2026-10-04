@@ -81,6 +81,23 @@ commands.ls = (directory) => {
 
 commands.dir = commands.ls
 
+// Completion data for the terminal's Tab key.
+commands.__getFiles = () => {
+  const directory = getDirectory();
+  const entries = directory === 'root'
+    ? [...struct.root, ...Object.keys(struct).filter((entry) => entry !== 'root')]
+    : struct[directory] || struct.root;
+  return entries.map((entry) => (entry in struct ? `${entry}/` : `${entry}.txt`));
+};
+
+commands.__getFilesIn = (directory) => {
+  const lookupDirectory = directory && directory in struct ? directory : getDirectory();
+  const entries = lookupDirectory === 'root'
+    ? [...struct.root, ...Object.keys(struct).filter((entry) => entry !== 'root')]
+    : struct[lookupDirectory] || struct.root;
+  return entries.map((entry) => (entry in struct ? `${entry}/` : `${entry}.txt`));
+};
+
 // View list of possible commands.
 commands.help = () => systemData.help;
 commands.all_commands = () => systemData.all_commands;
