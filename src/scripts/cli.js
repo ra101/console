@@ -24,7 +24,6 @@ const struct = {
 
 const commands = {};
 let systemData = {};
-const title = ["🖥️ https://ra101.dev/console/", "🖥️ ra101://console"];
 let rootPath = 'ra101/users/127.0.0.1';
 
 const getDirectory = () => localStorage.directory;
@@ -47,7 +46,11 @@ function close_terminal() {
       if (timeUntillPing <= 0){
         clearInterval(intervalObject)
         window.close()
-        window.open("https://ra101.github.io/", target="_self")
+        try {
+          window.location.assign("https://ra101.dev")
+        } catch (e) {
+          window.location.assign("https://ra101.github.io/")
+        }
       }
       else {
         timeUntillPing -= 1;
